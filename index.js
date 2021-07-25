@@ -44,28 +44,32 @@ let persons = [
     }
 ]
 
-app.get("/api/persons", (req, res) => {
+app.get("/api/persons", (req, res, next) => {
     Person.find({}).then(result => {
         res.json(result)
-    })
+    }).catch(error => next(error))
 })
 
-app.get("/info", (req, res) => {
+app.get("/info", (req, res, next) => {
     Person.find({}).then(result => {
         res.send(`
         <p>Phonebook has info for ${result.length} people</p>
         <p>${new Date()}</p>
         `)
-    })
+    }).catch(error => next(error))
 })
 
-app.get("/api/persons/:id", (req, res) => {
+app.get("/api/persons/:id", (req, res, next) => {
     Person.findById(req.params.id).then(person => {
-        res.json(person)
-    })
+        if (person) {
+            res.json(person)
+        }else{
+            res.status(404).end()
+        }
+    }).catch(error => next(error))
 })
 
-app.post("/api/persons", (req, res) => {
+app.post("/api/persons", (req, res, next) => {
     const body = req.body
     console.log(body)
     if (!body.name){
@@ -85,14 +89,41 @@ app.post("/api/persons", (req, res) => {
 
     person.save().then(savedPerson => {
         res.json(savedPerson)
-    })
+    }).catch(error => next(error))
 })
 
-app.delete("/api/persons/:id", (req, res) => {
-    const id = Number(req.params.id)
-    persons = persons.filter(p => p.id !== id)
-    res.status(204).end()
+app.put("/api/persons/:id", (req, res, next) => {
+    const body = req.body
+    const person = {
+        name: body.name,
+        number: body.number
+    }
+    Person.findByIdAndUpdate(req.params.id, person, {new: true}).then(updatedPerson => {
+        res.json(updatedPerson)
+    }).catch(error => next(error))
 })
+
+app.delete("/api/persons/:id", (req, res, next) => {
+    Person.findByIdAndRemove(req.params.id).then(result => {
+        res.status(204).end()
+    }).catch(error => next(error))
+})
+
+const errorHandler = (error, req, res, next) => {
+    console.log(error.message)
+    if (error.name === "CastError") {
+        return res.status(400).send({error: "mailformatted id"})
+    }
+    next(error)
+}
+
+app.use(errorHandler)
+
+const unknownEndpoint = (req, res) => {
+    res.status(404).send({error: "unknown endpoint"})
+}
+
+app.use(unknownEndpoint)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
