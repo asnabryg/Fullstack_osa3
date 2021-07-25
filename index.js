@@ -6,7 +6,6 @@ const cors = require("cors")
 const app = express()
 
 app.use(express.json())
-app.use(express.static("build"))
 app.use(cors())
 app.use(morgan(function (tokens, req, res) {
     return [
@@ -18,6 +17,7 @@ app.use(morgan(function (tokens, req, res) {
         JSON.stringify(req.body)
     ].join(' ')
 }))
+app.use(express.static("build"))
 
 let persons = [
     {
